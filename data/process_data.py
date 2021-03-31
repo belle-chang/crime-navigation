@@ -6,6 +6,14 @@ filename = "crime_db_clean.csv"
 # filename = "crime.csv"
   
 # initializing the titles and rows list 
+
+offense_codes = ['13A', '13B', '13C', '220', '290', '35A', 
+                 '25B', '26A', '26B', '09A', '09B', '09C',
+                 '100', '23A', '23B', '23C', '23D', '23E', 
+                 '23F', '23G', '23H', '240', '40A', '40B',
+                 '120', '11A', '11B', '11C', '11D', '36B',
+                 '280', '520', '90B', '90C', '90D', '90E',
+                 '90H']
 fields_dict = {
     "uid": 0, 
     "city_name": 1, 
@@ -88,7 +96,7 @@ with open(filename, 'r') as csvfile:
         rows.append(row)
         city = row[fields_dict['city_name']]
         cities[city] = cities[city] + 1
-        if city == "Boston":
+        if city == "Chicago":
             rows.append(row)
             feature = {
                 "type": "Feature",
@@ -108,6 +116,8 @@ with open(filename, 'r') as csvfile:
             if lat > 90 or lat < -90 or lon > 180 or lon < -180:
                 # print("invalid")
                 continue
+            if row[fields_dict['offense_code']] not in offense_codes:
+                continue
             feature['geometry']['coordinates'] = [lon, lat] 
             # print("lat, long: ", [row[fields_dict['latitude']], row[fields_dict['longitude']]] )
             feature['properties']['offense_code'] = row[fields_dict['offense_code']]
@@ -126,8 +136,8 @@ with open(filename, 'r') as csvfile:
 
 print("\n\n\n")
 import json
-# with open('chi_clean.json', 'w') as writefile:
-    # json.dump(geojson, writefile)
+with open('chi_clean.json', 'w') as writefile:
+    json.dump(geojson, writefile)
     # print(geojson, file=writefile)
 # printing the field names 
 # print('Field names are:' + ', '.join(field for field in fields)) 
