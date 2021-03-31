@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/crime-navigation/precache-manifest.6c926833ac4722187fc4f55f9187a50c.js"
+  "/crime-navigation/precache-manifest.064b9d951e81312b06a600953d6f15a1.js"
 );
 
 self.addEventListener('message', (event) => {
