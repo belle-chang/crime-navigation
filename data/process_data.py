@@ -81,6 +81,8 @@ feature = {
     "date_single": ""
   }
 }
+
+points = []
 # reading csv file 
 import json
 with open(filename, 'r') as csvfile: 
@@ -96,7 +98,10 @@ with open(filename, 'r') as csvfile:
         rows.append(row)
         city = row[fields_dict['city_name']]
         cities[city] = cities[city] + 1
-        if city == "Chicago":
+        print(cities[city])
+        if city != "Fort Worth" and len(points) > 0:
+            break
+        if city == "Fort Worth":
             rows.append(row)
             feature = {
                 "type": "Feature",
@@ -112,13 +117,19 @@ with open(filename, 'r') as csvfile:
             }
             lat = float(row[fields_dict['latitude']])
             lon = float(row[fields_dict['longitude']])
+            point = [lon, lat]
+            total = lon+lat
             # print([lat, lon])
             if lat > 90 or lat < -90 or lon > 180 or lon < -180:
                 # print("invalid")
                 continue
             if row[fields_dict['offense_code']] not in offense_codes:
                 continue
-            feature['geometry']['coordinates'] = [lon, lat] 
+            if point in points:
+                # (print("here"))
+                continue
+            points.append(point)
+            feature['geometry']['coordinates'] = point
             # print("lat, long: ", [row[fields_dict['latitude']], row[fields_dict['longitude']]] )
             feature['properties']['offense_code'] = row[fields_dict['offense_code']]
             feature['properties']['offense_type'] = row[fields_dict['offense_type']]
@@ -136,7 +147,7 @@ with open(filename, 'r') as csvfile:
 
 print("\n\n\n")
 import json
-with open('chi_clean.json', 'w') as writefile:
+with open('fw_nodupes.json', 'w') as writefile:
     json.dump(geojson, writefile)
     # print(geojson, file=writefile)
 # printing the field names 

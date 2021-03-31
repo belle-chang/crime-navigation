@@ -6,8 +6,10 @@ import MapboxDirections from '@mapbox/mapbox-gl-directions/dist/mapbox-gl-direct
 import '@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css'
 import * as turf from '@turf/turf';
 import polyline from '@mapbox/polyline'
-import bos from './bos_final.json'
-import fw from './fw_final.json'
+import bos from './bos_nodupes.json'
+import fw from './fw_nodupes.json'
+import chi from './chi_nodupes.json'
+import sf from './sf_nodupes.json'
 
 mapboxgl.accessToken =
     'pk.eyJ1IjoiYW5hYmVsbGVjaGFuZyIsImEiOiJja20xZmVxNGYwMTRpMnJtemJ0M3podzFzIn0.punpaEzFpzG4kmbcpdtwUQ'
@@ -35,7 +37,7 @@ const App = () => {
         // crate new map
         const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/streets-v11',
+        style: 'mapbox://styles/mapbox/dark-v10',
         //   style: 'mapbox://styles/anabellechang/ckm11howb889h17qf87wj3ld6',
         center: [lng, lat],
         zoom: zoom
@@ -48,19 +50,18 @@ const App = () => {
         let maxAttempts = 50;
         let min_intersections;
         let num_intersections = Infinity;
+        let current_city;
         let route;
-        let origin;
-        let destination;
 
         map.on('load', function() {
-            let cities = ['bos', 'fw'];
-            let cities_geo = ['https://raw.githubusercontent.com/belle-chang/navi-crime/main/data/jsonformatter-2.json', 'https://raw.githubusercontent.com/belle-chang/crime-navi/main/data/fw_final.json'];
-
+            let cities = ['bos', 'fw', 'chi', 'sf'];
+            let data = [bos, fw, chi, sf]
+            
             for (let i = 0; i < cities.length; i++) {
                 map.addSource("crime-" + cities[i], {
                     type: 'geojson',
                     // data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_10m_ports.geojson'
-                    data: cities_geo[i],
+                    data: data[i],
                     cluster: true,
                     clusterMaxZoom: 14,
                     clusterRadius: 50
@@ -81,18 +82,18 @@ const App = () => {
                             'step',
                             ['get', 'point_count'],
                             '#ffb6ab',
-                            20,
+                            30,
                             '#f5735f',
-                            50,
+                            75,
                             '#b83e2c'
                             ],
                             'circle-radius': [
                             'step',
                             ['get', 'point_count'],
                             20,
-                            20,
                             30,
-                            50,
+                            30,
+                            75,
                             40
                         ]
                     },
@@ -110,7 +111,7 @@ const App = () => {
                     filter: ['has', 'point_count'],
                     layout: {
                         'text-field': '{point_count_abbreviated}',
-                        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+                        'text-font': ['Arial Unicode MS Bold'],
                         'text-size': 12,
                         'visibility': 'visible'
                     }
@@ -123,7 +124,8 @@ const App = () => {
                     source: "crime-" + cities[i], // this should be the id of the source
                     filter: ['!', ['has', 'point_count']],
                     paint: {
-                        'circle-color': '#11b4da',
+                        'circle-color': '#fc0b03',
+                        // 'circle-color': '#ffffff',
                         'circle-radius': 4,
                         'circle-stroke-width': 1,
                         'circle-stroke-color': '#fff'
@@ -138,22 +140,22 @@ const App = () => {
             // testing routing api
             {
             
-            map.addSource("obstacles", {
-                type: 'geojson',
-                data: obstacle
-            })
-            map.addLayer({
-                id: 'obstacles',
-                type: 'fill',
-                source: "obstacles",
-                paint: {
-                    'fill-color': '#f03b20',
-                    // 'circle-radius': 5,
-                    // 'circle-stroke-width': 1,
-                    'fill-opacity': 0.5,
-                    'fill-outline-color': '#f03b20'
-                }
-            });
+            // map.addSource("obstacles", {
+            //     type: 'geojson',
+            //     data: obstacle
+            // })
+            // map.addLayer({
+            //     id: 'obstacles',
+            //     type: 'fill',
+            //     source: "obstacles",
+            //     paint: {
+            //         'fill-color': '#f03b20',
+            //         // 'circle-radius': 5,
+            //         // 'circle-stroke-width': 1,
+            //         'fill-opacity': 0.5,
+            //         'fill-outline-color': '#f03b20'
+            //     }
+            // });
                  
             map.addSource('theRoute', {
                 type: 'geojson',
@@ -171,10 +173,10 @@ const App = () => {
                 'line-cap': 'round'
                 },
                 paint: {
-                'line-color': '#cccccc',
+                'line-color': '#4881c5',
                 'line-opacity': 0.75,
                 'line-width': 10,
-                'line-blur': 0.5
+                'line-blur': 0.5,
                 }
             });
                  
@@ -201,7 +203,9 @@ const App = () => {
 
         let dictionary = {
             "Boston": ['clusters-bos', 'cluster-count-bos', 'unclustered-point-bos'],
-            "Fort Worth": ['clusters-fw', 'cluster-count-fw', 'unclustered-point-fw']
+            "Fort Worth": ['clusters-fw', 'cluster-count-fw', 'unclustered-point-fw'],
+            "Chicago": ['clusters-chi', 'cluster-count-chi', 'unclustered-point-chi'],
+            "San Francisco": ['clusters-sf', 'cluster-count-sf', 'unclustered-point-sf'],
         }
         let lng_lat_zoom = {
             "Boston": {
@@ -211,11 +215,21 @@ const App = () => {
             "Fort Worth": {
                 center: [-97.3444, 32.8168],
                 zoom: 9.73
+            },
+            "Chicago": {
+                center: [-87.72023,41.83138],
+                zoom: 10
+            },
+            "San Francisco": {
+                center: [-122.44779,37.76190],
+                zoom: 10
             }
         }
-        let lng_city = {
-            [-71.0799]: bos,
-            [-97.3444]: fw
+        let data = {
+            "Boston": bos,
+            "Fort Worth": fw,
+            "Chicago": chi,
+            "San Francisco": sf,
         }
 
         for (let key in dictionary) {
@@ -236,11 +250,9 @@ const App = () => {
         for (let i = 0; i < cities.length; i++) {
             cities[i].onclick = function(e) {
                 map.flyTo(lng_lat_zoom[cities[i].id])
+                // obstacle = turf.buffer(data[cities[i].id], 7, { units: "meters" });
+                current_city = data[cities[i].id]
             }
-            console.log(map.getSource('obstacles'))
-            console.log(map.getSource('clusters-bos'))
-            console.log(map)
-            // obstacle = turf.buffer(data[cities[i].id], 7, { units: "meters" });
             // map.getSource('obstacles').setData(obstacle);
         }
 
@@ -260,6 +272,7 @@ const App = () => {
             alley_bias: -.75,
             steps: true,
             controls: { instructions: false },
+            flyTo: false
         });
 
         // Integrates directions control with map
@@ -268,6 +281,7 @@ const App = () => {
         let isEmpty = function(obj){
             return Object.keys(obj).length === 0;
         }
+
         directions.on('clear', function(e) {
             counter = 0;
             num_intersections = Infinity;
@@ -276,15 +290,6 @@ const App = () => {
             let instructions = document.getElementById('instructions')
             instructions.innerHTML = ""
             instructions.style.visibility = "hidden"
-
-            // let tempo = directions.getOrigin();
-            // let tempd = directions.getDestination();
-            // // if (isEmpty(tempo) && isEmpty(tempd)) {
-            // //     map.setLayoutProperty('theRoute', 'visibility', 'none');
-            // // }
-            // console.log(tempo)
-            // console.log(tempd)
-
         });
 
         let addDirections = function(route) {
@@ -319,20 +324,19 @@ const App = () => {
         }
 
         directions.on('route', function (e) {
+            let tempo = directions.getOrigin();
+            let tempd = directions.getDestination();
+            if (isEmpty(tempo) || isEmpty(tempd)) {
+                directions.removeRoutes();
+                return;
+            }
             let notice = document.getElementById("notice");
-            notice.style.visibility = "visible"
+            if (notice.style.visibility != "visible") notice.style.visibility = "visible";
             let route_num = document.getElementById("route_num");
             route_num.innerHTML = "Running route " + counter + "."
 
-            if (counter == 0) {
-                origin = directions.getOrigin();
-                destination = directions.getDestination();
-                console.log("origin")
-                console.log(origin)
-                console.log("destination")
-                console.log(destination)
-            }
-            
+            let instructions = document.getElementById('instructions');
+            if (instructions.style.visibility != "hidden") instructions.style.visibility = "hidden";
             
             let routes = e.route;
              
@@ -358,6 +362,13 @@ const App = () => {
                     
                     // Get GeoJson LineString feature of route
                     let routeLine = polyline.toGeoJSON(e.geometry);
+                    
+                    // Create a bounding box around this route
+                    // The app will find a random point in the new bbox
+                    bbox = turf.bbox(routeLine);
+                    polygon = turf.bboxPolygon(bbox);
+                    let points_within = turf.pointsWithinPolygon(current_city, polygon);
+                    obstacle = turf.buffer(points_within, 7, { units: "meters" });
                     let intersects = turf.lineIntersect(obstacle, routeLine);
 
                     // get route with minimum intersections
@@ -367,10 +378,12 @@ const App = () => {
                         route = e;
                     }
                     
-                    // Create a bounding box around this route
-                    // The app will find a random point in the new bbox
-                    bbox = turf.bbox(routeLine);
-                    polygon = turf.bboxPolygon(bbox);
+                    // // Create a bounding box around this route
+                    // // The app will find a random point in the new bbox
+                    // bbox = turf.bbox(routeLine);
+                    // polygon = turf.bboxPolygon(bbox);
+                    // let points_within = turf.pointsWithinPolygon(bos, polygon);
+                    // console.log(points_within)
                     
                     // Update the data for the route
                     // This will update the route line on the map
@@ -383,7 +396,7 @@ const App = () => {
                     if (clear == true) {
                         // Hide the box
                         map.setLayoutProperty('theBox', 'visibility', 'none');
-                        map.setPaintProperty('theRoute', 'line-color', '#74c476');
+                        // map.setPaintProperty('theRoute', 'line-color', '#74c476');
                         // Reset the counter, min intersections
                         route = e;
                         counter = 0;
@@ -396,7 +409,7 @@ const App = () => {
                         // by a factor of the attempt count
                         polygon = turf.transformScale(polygon, counter * 0.025);
                         bbox = turf.bbox(polygon);
-                        map.setPaintProperty('theRoute', 'line-color', '#072dab');
+                        // map.setPaintProperty('theRoute', 'line-color', '#4881c5');
                         
                         // Add a randomly selected waypoint to get a new route from the Directions API
                         let randomWaypoint = turf.randomPoint(1, { bbox: bbox });
@@ -413,7 +426,7 @@ const App = () => {
             // shitty workaround
             let tempo = directions.getOrigin();
             let tempd = directions.getDestination();
-            if (isEmpty(tempo) && isEmpty(tempd)) {
+            if (isEmpty(tempo) || isEmpty(tempd)) {
                 map.setLayoutProperty('theRoute', 'visibility', 'none');
             }
             setLng(map.getCenter().lng.toFixed(4));
@@ -421,14 +434,14 @@ const App = () => {
             setZoom(map.getZoom().toFixed(2));
         });
 
-        map.on('moveend', function() {
-            let lng = map.getCenter().lng.toFixed(4)
-            console.log(lng_city[lng])
-            if (lng_city[lng]) {
-                obstacle = turf.buffer(lng_city[lng], 7, { units: "meters" });
-                map.getSource('obstacles').setData(obstacle);
-            }
-        })
+        // map.on('moveend', function() {
+        //     let lng = map.getCenter().lng.toFixed(4)
+        //     console.log(lng_city[lng])
+        //     if (lng_city[lng]) {
+        //         obstacle = turf.buffer(lng_city[lng], 7, { units: "meters" });
+        //         // map.getSource('obstacles').setData(obstacle);
+        //     }
+        // })
 
         
 
@@ -443,6 +456,16 @@ const App = () => {
                     Available Cities
                 </a>
             </nav>
+            
+            <div id="loader">
+                <br/>
+                <h1>Welcome to Crime Navigation!</h1>
+                This is an application created to help you navigate around crime-ridden areas in dense urban areas. Current featured cities include Boston and Fort Worth.
+                <br/>
+                <br/>
+                Click on a city in the lower left menu to get started!
+                <a id="x">x</a>
+            </div>
         <div id="notice">
            <b>Your custom route is being calculated!</b> 
            <br/>
@@ -450,22 +473,7 @@ const App = () => {
         </div>
 
         <table id="instructions" >
-            {/* <tr>
-                <td>
-                    herjahd
-                </td>
-                <td>
-                    adkfsj;
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    herjahd
-                </td>
-                <td>
-                    adkfsj;
-                </td>
-            </tr> */}
+        
         </table>
         {/* <div className='sidebarStyle'>
             <div>
