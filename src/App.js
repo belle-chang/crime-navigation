@@ -10,6 +10,7 @@ import bos from './bos_nodupes.json'
 import fw from './fw_nodupes.json'
 import chi from './chi_nodupes.json'
 import sf from './sf_nodupes.json'
+import {XIcon, QuestionIcon} from '@primer/octicons-react'
 
 mapboxgl.accessToken =
     'pk.eyJ1IjoiYW5hYmVsbGVjaGFuZyIsImEiOiJja20xZmVxNGYwMTRpMnJtemJ0M3podzFzIn0.punpaEzFpzG4kmbcpdtwUQ'
@@ -50,6 +51,7 @@ const App = () => {
         let maxAttempts = 50;
         let min_intersections;
         let num_intersections = Infinity;
+        let distance = Infinity;
         let current_city;
         let route;
 
@@ -74,7 +76,7 @@ const App = () => {
                     filter: ['has', 'point_count'],
                     // paint properties
                     paint: {
-                    //   "circle-opacity": 0.75,
+                        "circle-opacity": 0.75,
                     //   "circle-stroke-width": 1,
                     //   "circle-radius": 4,
                     //   "circle-color": "#FFEB3B"
@@ -222,7 +224,7 @@ const App = () => {
             },
             "San Francisco": {
                 center: [-122.44779,37.76190],
-                zoom: 10
+                zoom: 12
             }
         }
         let data = {
@@ -232,35 +234,36 @@ const App = () => {
             "San Francisco": sf,
         }
 
-        for (let key in dictionary) {
-            // check if the property/key is defined in the object itself, not in parent
-            if (dictionary.hasOwnProperty(key)) {           
-                console.log(key, dictionary[key]);
-                let link = document.createElement('a');
-                link.id = key;
-                link.href = '#';
-                link.className = 'active city_menu';
-                link.textContent = key;
-            let layers = document.getElementById('menu');
-            layers.appendChild(link);
+        // once map loads, populate menu bar
+        map.once('load', function() {
+            for (let key in dictionary) {
+                // check if the property/key is defined in the object itself, not in parent
+                if (dictionary.hasOwnProperty(key)) {           
+                    let link = document.createElement('a');
+                    link.id = key;
+                    link.href = '#';
+                    link.className = 'active city_menu';
+                    link.textContent = key;
+                let layers = document.getElementById('menu');
+                layers.appendChild(link);
+                }
             }
-        }
-        // fly to city, set obstacle 
-        let cities = document.getElementsByClassName("city_menu");
-        for (let i = 0; i < cities.length; i++) {
-            cities[i].onclick = function(e) {
-                map.flyTo(lng_lat_zoom[cities[i].id])
-                // obstacle = turf.buffer(data[cities[i].id], 7, { units: "meters" });
-                current_city = data[cities[i].id]
+            // fly to city, set obstacle 
+            let cities = document.getElementsByClassName("city_menu");
+            for (let i = 0; i < cities.length; i++) {
+                cities[i].onclick = function(e) {
+                    map.flyTo(lng_lat_zoom[cities[i].id])
+                    // obstacle = turf.buffer(data[cities[i].id], 7, { units: "meters" });
+                    current_city = data[cities[i].id]
+                }
+                // map.getSource('obstacles').setData(obstacle);
             }
-            // map.getSource('obstacles').setData(obstacle);
-        }
+        })
 
-
-        // Add navigation control (the +/- zoom buttons) the top right of the canvas
+        // add navigation control (the +/- zoom buttons) the top right of the canvas
         map.addControl(new mapboxgl.NavigationControl());
-        // map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+        // add directions
         const directions = new MapboxDirections({
             accessToken: mapboxgl.accessToken,
             unit: 'imperial',
@@ -275,27 +278,43 @@ const App = () => {
             flyTo: false
         });
 
-        // Integrates directions control with map
+        // add directions control with map
         map.addControl(directions, 'top-left');
 
         let isEmpty = function(obj){
             return Object.keys(obj).length === 0;
         }
 
+        let hide_element = function(el_name) {
+            let el = document.getElementById(el_name);
+            el.style.visibility = "hidden";
+        }
+
+        let show_element = function(el_name) {
+            let el = document.getElementById(el_name);
+            el.style.visibility = "visible";
+        }
+
+        // when directions clear, remove bbox, hide instructions and notice
         directions.on('clear', function(e) {
             counter = 0;
             num_intersections = Infinity;
+            distance = Infinity;
             // map.setLayoutProperty('theRoute', 'visibility', 'none');
             map.setLayoutProperty('theBox', 'visibility', 'none');
             let instructions = document.getElementById('instructions')
             instructions.innerHTML = ""
             instructions.style.visibility = "hidden"
+            // let notice = document.getElementById("notice");
+            // notice.style.visibility = "hidden"
+            hide_element("notice");
         });
 
         let addDirections = function(route) {
             directions.removeRoutes();
-            let notice = document.getElementById("notice");
-            notice.style.visibility = "hidden"
+            // let notice = document.getElementById("notice");
+            // notice.style.visibility = "hidden"
+            hide_element("notice")
             let route_num = document.getElementById("route_num");
             route_num.innerHTML = "Running route "
             let instructions = document.getElementById('instructions');
@@ -304,11 +323,9 @@ const App = () => {
             console.log(steps)
             let total_dist = (route.distance / 1609.344).toFixed(2);
             let duration = (route.duration / 60).toFixed(0);
-            let str = "<tr> "+ "<td><b>" + total_dist + "mi" + "</b></td>" + "<td>" + duration + "min" + "</td>" + "</tr>"
+            let str = "<tr> "+ "<td id=\"column1\"><b>" + total_dist + "mi" + "</b></td>" + "<td id=\"column2\">" + duration + "min" + "</td>" + "</tr>"
             instructions.innerHTML += str;
-            for (var i = 0; i < steps.length; i++) {
-                console.log(steps[i].maneuver.instruction);
-                
+            for (var i = 0; i < steps.length; i++) {                
                 let miles = (steps[i].distance / 1609.344).toFixed(2);
                 let dist = miles;
                 let unit = "mi";
@@ -318,12 +335,17 @@ const App = () => {
                     unit = "ft"
                 }
                 // let str = "<li> "+steps[i].maneuver.instruction + "--" + dist + unit + "</li>"
-                let str = "<tr> "+ "<td>" + dist + unit + "</td>" + "<td>" + steps[i].maneuver.instruction + "</td>" + "</tr>"
+                let str = "<tr> "+ "<td id=\"column1\">" + dist + unit + "</td>" + "<td id=\"column2\">" + steps[i].maneuver.instruction + "</td>" + "</tr>"
                 instructions.innerHTML += str;
             }
         }
 
         directions.on('route', function (e) {
+            if (current_city == null) {
+                window.alert("Please select a city in the menu in the bottom left!");
+                directions.removeRoutes();
+                return;
+            }
             let tempo = directions.getOrigin();
             let tempd = directions.getDestination();
             if (isEmpty(tempo) || isEmpty(tempd)) {
@@ -345,9 +367,9 @@ const App = () => {
             // map.setLayoutProperty('theBox', 'visibility', 'none');
              
             if (counter >= maxAttempts) {
-                console.log(min_intersections)
+                // console.log(min_intersections)
                 e.route = route;
-                console.log(e.route)
+                // console.log(e.route)
                 map.getSource('theRoute').setData(min_intersections);
                 addDirections(e.route);
             } 
@@ -355,7 +377,6 @@ const App = () => {
                 // Make each route visible
                 routes.forEach((e) => {
 
-                    console.log(counter);
                     // Make each route visible
                     map.setLayoutProperty('theRoute', 'visibility', 'visible');
                     map.setLayoutProperty('theBox', 'visibility', 'visible');
@@ -372,10 +393,22 @@ const App = () => {
                     let intersects = turf.lineIntersect(obstacle, routeLine);
 
                     // get route with minimum intersections
-                    if (intersects.features.length < num_intersections) {
-                        num_intersections = intersects.features.length;
-                        min_intersections = routeLine;
-                        route = e;
+                    if (intersects.features.length <= num_intersections) {
+                        if (intersects.features.length == num_intersections && e.distance < distance) {
+                            num_intersections = intersects.features.length;
+                            min_intersections = routeLine;
+                            distance = e.distance
+                            route = e;
+                        }
+                        else if (intersects.features.length < num_intersections) {
+                            num_intersections = intersects.features.length;
+                            min_intersections = routeLine;
+                            distance = e.distance
+                            route = e;
+                        }
+                        // console.log(intersects.features.length)
+                        // console.log(num_intersections)
+                        // console.log(e);
                     }
                     
                     // // Create a bounding box around this route
@@ -401,6 +434,7 @@ const App = () => {
                         route = e;
                         counter = 0;
                         num_intersections = Infinity;
+                        distance = Infinity;
                         addDirections(route);
                     } else {
                     // Collision occurred, so increment the counter
@@ -442,6 +476,19 @@ const App = () => {
         //         // map.getSource('obstacles').setData(obstacle);
         //     }
         // })
+        // let close_loader = document.getElementById("loader");
+        let close_loader = document.getElementById("close");
+        close_loader.onclick = function(e) {
+            close_loader.parentElement.style.visibility = "hidden";
+        }
+
+        let toggle_loader = document.getElementById("question");
+        toggle_loader.onclick = function(e) {
+            if (close_loader.parentElement.style.visibility == "hidden")
+                close_loader.parentElement.style.visibility = "visible";
+            else
+                close_loader.parentElement.style.visibility = "hidden";
+        }
 
         
 
@@ -459,12 +506,20 @@ const App = () => {
             
             <div id="loader">
                 <br/>
-                <h1>Welcome to Crime Navigation!</h1>
-                This is an application created to help you navigate around crime-ridden areas in dense urban areas. Current featured cities include Boston and Fort Worth.
+                <h1>A New Way to Navigate</h1>
+                This is an application created to help you navigate around crime-ridden areas in dense urban areas. 
+                <br/>
+                Current featured cities include Boston, Fort Worth, Chicago, and San Francisco.
+                <br/>
+                <br/>
+                Each red circle indicates a cluster of plotted crime data, with the number signaling the cluster size. Zoom in closer to get a better look.
                 <br/>
                 <br/>
                 Click on a city in the lower left menu to get started!
-                <a id="x">x</a>
+                {/* <a id="close">x</a> */}
+                <div id="close">
+                <XIcon size={24}/>
+                </div>
             </div>
         <div id="notice">
            <b>Your custom route is being calculated!</b> 
@@ -472,14 +527,32 @@ const App = () => {
            <div id="route_num">Running route </div>
         </div>
 
-        <table id="instructions" >
         
+        {/* <table id="distance_duration" >
+        </table> */}
+        <div id="table">
+        <table id="instructions" >
+            {/* <tbody>
+            <tr>
+                <td id="column1"><b>.21mi</b> </td>
+                <td id="column2">10min</td>
+            </tr>
+            <tr>
+                <td id="column1">209ft</td>
+                <td id="column2">Walk northeast on Puritan Avenue.</td>
+            </tr>
+            </tbody> */}
         </table>
+        </div>
+        
         {/* <div className='sidebarStyle'>
             <div>
             Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
             </div>
         </div> */}
+        <div id="question">
+            <QuestionIcon size={24} fill="#FFFFFF"/>
+        </div>
         <div className='map-container' ref={mapContainerRef} />
         
         </div>
