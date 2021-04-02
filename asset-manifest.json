@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/crime-navigation/static/css/main.3cb901a4.chunk.css",
-    "main.js": "/crime-navigation/static/js/main.aac6230c.chunk.js",
-    "main.js.map": "/crime-navigation/static/js/main.aac6230c.chunk.js.map",
+    "main.js": "/crime-navigation/static/js/main.bf8cf23b.chunk.js",
+    "main.js.map": "/crime-navigation/static/js/main.bf8cf23b.chunk.js.map",
     "runtime-main.js": "/crime-navigation/static/js/runtime-main.98c637ed.js",
     "runtime-main.js.map": "/crime-navigation/static/js/runtime-main.98c637ed.js.map",
     "static/css/2.76b2b392.chunk.css": "/crime-navigation/static/css/2.76b2b392.chunk.css",
     "static/js/2.bc32ffcf.chunk.js": "/crime-navigation/static/js/2.bc32ffcf.chunk.js",
     "static/js/2.bc32ffcf.chunk.js.map": "/crime-navigation/static/js/2.bc32ffcf.chunk.js.map",
     "index.html": "/crime-navigation/index.html",
-    "precache-manifest.a884990c774a818f37248b454df5d7f5.js": "/crime-navigation/precache-manifest.a884990c774a818f37248b454df5d7f5.js",
+    "precache-manifest.71ec03f41962780630c952c1e404219a.js": "/crime-navigation/precache-manifest.71ec03f41962780630c952c1e404219a.js",
     "service-worker.js": "/crime-navigation/service-worker.js",
     "static/css/2.76b2b392.chunk.css.map": "/crime-navigation/static/css/2.76b2b392.chunk.css.map",
     "static/css/main.3cb901a4.chunk.css.map": "/crime-navigation/static/css/main.3cb901a4.chunk.css.map",
@@ -20,6 +20,6 @@
     "static/css/2.76b2b392.chunk.css",
     "static/js/2.bc32ffcf.chunk.js",
     "static/css/main.3cb901a4.chunk.css",
-    "static/js/main.aac6230c.chunk.js"
+    "static/js/main.bf8cf23b.chunk.js"
   ]
 }
